@@ -6,7 +6,7 @@
 A polar clock for Home Assistant dashboards. Concentric rings fill up as seconds, minutes, hours, days, months and the year go by. Inspired by the classic pixelbreaker polar clock.
 
 - Seven rings to choose from (seconds, minutes, hours, day of week, day of month, month, year), each optional and in any order
-- Smooth motion that winds full rings back down instead of jumping to empty, or stepped motion with a small bounce on each step
+- Smooth motion that winds full rings back down instead of jumping to empty, or stepped motion where each step stretches and then snaps into place
 - Rainbow, theme-aware, or custom colours (one per ring)
 - Labels on the arcs that stay upright all the way round, and an optional time/date readout in the centre
 - **Sizes itself automatically**: stays square in masonry views, fills its cell in sections views, and fits the screen height in panel views. Labels hide when the card gets too small
@@ -58,7 +58,7 @@ tap_action:
 | Option | Default | Description |
 | --- | --- | --- |
 | `rings` | `[seconds, minutes, hours, weekday, day, month]` | Rings to show, outermost first. Also: `year`. |
-| `motion` | `smooth` | `smooth` sweeps continuously, and a full ring winds back down to its new value. `step` moves once per unit with a small bounce. Reduced-motion users always get `step`, without the bounce or wind-back. |
+| `motion` | `smooth` | `smooth` sweeps continuously, and a full ring winds back down to its new value. `step` moves once per unit: the arc creeps forward, then snaps into place. Reduced-motion users always get `step`, without the snap animation or the wind-back. |
 | `color_mode` | `rainbow` | `rainbow` (hue follows progress), `theme` (blend of `--primary-color` → `--accent-color`), or `custom` (set by `ring_colors`). |
 | `ring_colors` | a bright colour per ring | Only used with `color_mode: custom`, e.g. `{ hours: "#ff4d6d" }`. Rings you leave out keep their default colour. Accepts any CSS colour, including `var(--…)`. |
 | `show_labels` | `true` | Text on each arc. |

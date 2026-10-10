@@ -247,7 +247,7 @@ export class PolarClockCard extends LitElement {
     if (!this.isConnected || !this._config || document.hidden || !this._onScreen) return;
     const loop = () => {
       this._draw();
-      // Step mode only needs frames while a ring is bouncing; otherwise wake on the next second.
+      // Step mode only needs frames while a ring is snapping into place; otherwise wake on the next second.
       if (this._motion === "smooth" || this._animator.animating) {
         this._frame = requestAnimationFrame(loop);
       } else {
@@ -347,7 +347,7 @@ export class PolarClockCard extends LitElement {
     const parts = zonedParts(now, time.ctx.timeZone);
     const motion = this._motion;
 
-    // Bounce and rollover are animations, so they are off for reduced-motion users.
+    // Step snaps and rollover are animations, so they are off for reduced-motion users.
     const animate = !reducedMotion?.matches;
     const frameTime = performance.now();
     const rings = cfg.rings.map((type, i) => {

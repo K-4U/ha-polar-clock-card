@@ -1,13 +1,16 @@
 import type { Motion } from "./config";
 
-export const BOUNCE_MS = 450;
+export const STEP_MS = 450;
 export const ROLLOVER_MS = 700;
 
-/** Overshoots ~10% past the target, then settles. */
-export function easeOutBack(t: number): number {
-  const c1 = 1.70158;
-  const c3 = c1 + 1;
-  return 1 + c3 * (t - 1) ** 3 + c1 * (t - 1) ** 2;
+/**
+ * "Stretch & snap": creeps a quarter of the way as if held back, then snaps the rest.
+ * Never passes the target.
+ */
+export function easeStretchSnap(t: number): number {
+  const hold = 0.6;
+  if (t < hold) return 0.25 * (t / hold) ** 2;
+  return 0.25 + 0.75 * (1 - (1 - (t - hold) / (1 - hold)) ** 3);
 }
 
 export function easeInOutCubic(t: number): number {
@@ -17,14 +20,14 @@ export function easeInOutCubic(t: number): number {
 interface Tween {
   from: number;
   start: number;
-  kind: "bounce" | "rollover";
-  /** Bounce target; rollover follows the live target instead. */
+  kind: "step" | "rollover";
+  /** Step target; rollover follows the live target instead. */
   to: number;
 }
 
 /**
  * Turns each ring's true progress into the value to draw:
- * - `step`: every change bounces into place (easeOutBack).
+ * - `step`: every change stretches and snaps into place (easeStretchSnap).
  * - `smooth`: when a ring wraps (e.g. 59s → 0s) it winds back to the live value
  *   instead of jumping to empty.
  */
@@ -52,7 +55,7 @@ export class RingAnimator {
     if (animate && prev !== undefined) {
       const current = this.shown.get(key) ?? prev;
       if (motion === "step" && target !== prev) {
-        tween = { kind: "bounce", from: current, to: target, start: now };
+        tween = { kind: "step", from: current, to: target, start: now };
         this.tweens.set(key, tween);
       } else if (motion === "smooth" && target < prev - 0.5) {
         tween = { kind: "rollover", from: current, to: target, start: now };
@@ -65,12 +68,12 @@ export class RingAnimator {
 
     let shown = target;
     if (tween) {
-      const duration = tween.kind === "bounce" ? BOUNCE_MS : ROLLOVER_MS;
+      const duration = tween.kind === "step" ? STEP_MS : ROLLOVER_MS;
       const t = Math.min(1, Math.max(0, (now - tween.start) / duration));
       if (t >= 1) {
         this.tweens.delete(key);
-      } else if (tween.kind === "bounce") {
-        shown = tween.from + (tween.to - tween.from) * easeOutBack(t);
+      } else if (tween.kind === "step") {
+        shown = tween.from + (tween.to - tween.from) * easeStretchSnap(t);
       } else {
         shown = tween.from + (target - tween.from) * easeInOutCubic(t);
       }

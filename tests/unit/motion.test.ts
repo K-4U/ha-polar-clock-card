@@ -1,12 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { BOUNCE_MS, ROLLOVER_MS, RingAnimator, easeOutBack } from "../../src/motion";
+import { ROLLOVER_MS, RingAnimator, STEP_MS, easeStretchSnap } from "../../src/motion";
 
-describe("easeOutBack", () => {
-  it("starts at 0, overshoots, ends at 1", () => {
-    expect(easeOutBack(0)).toBeCloseTo(0);
-    expect(easeOutBack(1)).toBeCloseTo(1);
-    const peak = Math.max(...Array.from({ length: 101 }, (_, i) => easeOutBack(i / 100)));
-    expect(peak).toBeGreaterThan(1.05);
+describe("easeStretchSnap", () => {
+  const samples = Array.from({ length: 101 }, (_, i) => easeStretchSnap(i / 100));
+
+  it("runs from 0 to 1 without ever overshooting or going back", () => {
+    expect(samples[0]).toBe(0);
+    expect(samples[100]).toBeCloseTo(1);
+    expect(Math.max(...samples)).toBeLessThanOrEqual(1);
+    samples.slice(1).forEach((v, i) => expect(v).toBeGreaterThanOrEqual(samples[i]));
+  });
+
+  it("creeps first, then snaps", () => {
+    expect(easeStretchSnap(0.6)).toBeCloseTo(0.25);
+    // the last 40% of the time covers 75% of the distance
+    expect(easeStretchSnap(0.75) - easeStretchSnap(0.6)).toBeGreaterThan(easeStretchSnap(0.6));
   });
 });
 
@@ -18,11 +26,12 @@ describe("RingAnimator", () => {
     expect(a.animating).toBe(false);
   });
 
-  it("bounces past the new value in step mode, then settles", () => {
+  it("snaps to the new value in step mode without passing it", () => {
     const a = new RingAnimator();
     a.value("s", 10 / 60, 0, "step", true);
-    const samples = Array.from({ length: 20 }, (_, i) => a.value("s", 11 / 60, 1000 + (i * BOUNCE_MS) / 19, "step", true));
-    expect(Math.max(...samples)).toBeGreaterThan(11 / 60);
+    const samples = Array.from({ length: 20 }, (_, i) => a.value("s", 11 / 60, 1000 + (i * STEP_MS) / 19, "step", true));
+    expect(Math.max(...samples)).toBeLessThanOrEqual(11 / 60);
+    expect(samples[1]).toBeGreaterThan(10 / 60);
     expect(samples[samples.length - 1]).toBeCloseTo(11 / 60);
     expect(a.animating).toBe(false);
   });
