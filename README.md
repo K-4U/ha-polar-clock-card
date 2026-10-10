@@ -5,6 +5,10 @@
 
 A polar clock for Home Assistant dashboards. Concentric rings fill up as seconds, minutes, hours, days, months and the year go by. Inspired by the classic pixelbreaker polar clock.
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/K-4U/ha-polar-clock-card/main/docs/hero.gif" width="380" alt="Polar clock at the top of the hour: the seconds and minutes rings wind back down together">
+</p>
+
 - Seven rings to choose from (seconds, minutes, hours, day of week, day of month, month, year), each optional and in any order
 - Smooth motion that winds full rings back down instead of jumping to empty, or stepped motion where each step stretches and then snaps into place
 - Rainbow, theme-aware, or custom colours (one per ring)
@@ -15,6 +19,14 @@ A polar clock for Home Assistant dashboards. Concentric rings fill up as seconds
 - Visual editor and YAML. Supports tap, hold and double-tap actions
 
 Requires Home Assistant **2024.8** or newer.
+
+<table>
+  <tr>
+    <td align="center"><img src="https://raw.githubusercontent.com/K-4U/ha-polar-clock-card/main/docs/step.gif" width="240" alt="Step motion"><br><code>motion: step</code></td>
+    <td align="center"><img src="https://raw.githubusercontent.com/K-4U/ha-polar-clock-card/main/docs/theme.gif" width="240" alt="Theme colours with a centre readout"><br><code>color_mode: theme</code> + <code>center</code></td>
+    <td align="center"><img src="https://raw.githubusercontent.com/K-4U/ha-polar-clock-card/main/docs/custom.gif" width="240" alt="Custom colours, counterclockwise from 3 o'clock"><br><code>color_mode: custom</code></td>
+  </tr>
+</table>
 
 ## Installation
 
@@ -83,6 +95,10 @@ tap_action:
 
 ### Sizing
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/K-4U/ha-polar-clock-card/main/docs/autosize.gif" width="320" alt="The clock resizing with its container; labels hide when it gets small">
+</p>
+
 The card has no fixed size. The clock is always a circle that fits the shorter side of the space it gets:
 
 - **Masonry view**: as wide as the column, and square.
@@ -123,6 +139,14 @@ Dashboards for testing:
 To test a real HACS install: complete the GitHub sign-in in **Settings → Devices & services → Add integration → HACS**, add this repository as a custom repository, then delete the dev resource under **Settings → Dashboards → Resources** so only the HACS copy loads.
 
 > Note: `frontend.extra_module_url` doesn't work for loading this card on HA 2026.10 and newer. It runs before the scoped custom element registry polyfill, so the element definition gets lost. Register the card as a Lovelace resource instead.
+
+### README GIFs
+
+```bash
+npm run docs:gifs
+```
+
+This renders the GIFs in [docs/](docs/) from the test harness using Playwright's fake clock, so every frame is exactly 1/25 s apart. Pass file names to render only some of them, e.g. `node docs/make-gifs.mjs hero.gif`. The scenes are defined at the top of [docs/make-gifs.mjs](docs/make-gifs.mjs).
 
 ### Tests
 
