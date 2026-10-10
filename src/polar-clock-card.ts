@@ -1,8 +1,9 @@
 import { LitElement, css, html, type PropertyValues } from "lit";
 import { property, query, state } from "lit/decorators.js";
 import { bindGestures, hasAnyAction } from "./actions";
-import { DEFAULT_CONFIG, normalizeConfig, type PolarClockConfig } from "./config";
+import { DEFAULT_CONFIG, RING_DEFAULT_COLORS, normalizeConfig, type PolarClockConfig } from "./config";
 import { EDITOR_TAG } from "./editor";
+import { RingAnimator } from "./motion";
 import { canonicalColor, contrastText, drawClock, mixColors, type RenderModel } from "./render";
 import {
   WEEKDAY_INDEX,
@@ -62,6 +63,7 @@ export class PolarClockCard extends LitElement {
   private _colorCache = new Map<string, string>();
   private _time?: TimeSettings;
   private _unbindGestures?: () => void;
+  private _animator = new RingAnimator();
   /** Fixed clock for tests/screenshots; set via `card.now = Date`. */
   public now?: Date;
 
@@ -83,6 +85,7 @@ export class PolarClockCard extends LitElement {
     this._config = normalizeConfig(config);
     this._colorCache.clear();
     this._time = undefined;
+    this._animator.reset();
   }
 
   getCardSize(): number {
@@ -244,7 +247,8 @@ export class PolarClockCard extends LitElement {
     if (!this.isConnected || !this._config || document.hidden || !this._onScreen) return;
     const loop = () => {
       this._draw();
-      if (this._motion === "smooth") {
+      // Step mode only needs frames while a ring is bouncing; otherwise wake on the next second.
+      if (this._motion === "smooth" || this._animator.animating) {
         this._frame = requestAnimationFrame(loop);
       } else {
         const now = this.now ?? new Date();
@@ -308,13 +312,11 @@ export class PolarClockCard extends LitElement {
   private _ringColor(index: number, count: number, progress: number, ctx2d: CanvasRenderingContext2D): string {
     const cfg = this._config!;
     const type = cfg.rings[index];
-    const override = cfg.ring_colors[type];
-    if (override) return canonicalColor(ctx2d, this._resolveColor(override));
     switch (cfg.color_mode) {
       case "rainbow":
         return canonicalColor(ctx2d, `hsl(${Math.round(progress * 360) % 360}, 85%, 58%)`);
-      case "palette":
-        return canonicalColor(ctx2d, this._resolveColor(cfg.palette[index % cfg.palette.length]));
+      case "custom":
+        return canonicalColor(ctx2d, this._resolveColor(cfg.ring_colors[type] ?? RING_DEFAULT_COLORS[type]));
       case "theme": {
         const a = canonicalColor(ctx2d, this._resolveColor("var(--primary-color, #03a9f4)"));
         const b = canonicalColor(ctx2d, this._resolveColor("var(--accent-color, #ff9800)"));
@@ -345,11 +347,15 @@ export class PolarClockCard extends LitElement {
     const parts = zonedParts(now, time.ctx.timeZone);
     const motion = this._motion;
 
+    // Bounce and rollover are animations, so they are off for reduced-motion users.
+    const animate = !reducedMotion?.matches;
+    const frameTime = performance.now();
     const rings = cfg.rings.map((type, i) => {
-      const progress = ringProgress(type, parts, motion, {
+      const target = ringProgress(type, parts, motion, {
         firstWeekday: time.firstWeekday,
         hours12: time.ctx.hours12,
       });
+      const progress = this._animator.value(type, target, frameTime, motion, animate);
       return {
         progress,
         color: this._ringColor(i, cfg.rings.length, progress, ctx2d),
@@ -382,6 +388,7 @@ export class PolarClockCard extends LitElement {
       showTrack: cfg.show_track,
       trackOpacity: cfg.track_opacity,
       showLabels: cfg.show_labels,
+      readableLabels: cfg.readable_labels,
       labelMinRingPx: cfg.label_min_ring_px,
       textColor,
       fontFamily: getComputedStyle(this).fontFamily || "sans-serif",

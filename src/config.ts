@@ -9,7 +9,7 @@ export const RING_TYPES = [
 ] as const;
 export type RingType = (typeof RING_TYPES)[number];
 
-export type ColorMode = "rainbow" | "theme" | "palette";
+export type ColorMode = "rainbow" | "theme" | "custom";
 export type Motion = "smooth" | "step";
 export type CenterMode = "none" | "time" | "date" | "time_date";
 export type Direction = "clockwise" | "counterclockwise";
@@ -36,12 +36,12 @@ export interface PolarClockConfig {
   rings: RingType[];
   motion: Motion;
   color_mode: ColorMode;
-  /** Colors used by `palette` mode, cycled outermost first. */
-  palette: string[];
-  /** Per-ring color override; wins over any color mode. */
+  /** Colors for `custom` mode; rings left out use RING_DEFAULT_COLORS. */
   ring_colors: Partial<Record<RingType, string>>;
   show_labels: boolean;
   uppercase_labels: boolean;
+  /** Flip labels on the bottom half so they never read upside down. */
+  readable_labels: boolean;
   /** Labels are hidden when a ring is thinner than this many CSS px. */
   label_min_ring_px: number;
   center: CenterMode;
@@ -70,24 +70,25 @@ export interface PolarClockConfig {
   double_tap_action: ActionConfig;
 }
 
-export const DEFAULT_PALETTE = [
-  "#ff4d6d",
-  "#ff9f1c",
-  "#ffd23f",
-  "#3bceac",
-  "#0ead69",
-  "#4cc9f0",
-  "#7b2ff7",
-];
+/** Starting colors per ring in `custom` color mode. */
+export const RING_DEFAULT_COLORS: Record<RingType, string> = {
+  seconds: "#ff4d6d",
+  minutes: "#ff9f1c",
+  hours: "#ffd23f",
+  weekday: "#3bceac",
+  day: "#0ead69",
+  month: "#4cc9f0",
+  year: "#7b2ff7",
+};
 
 export const DEFAULT_CONFIG: Omit<PolarClockConfig, "type"> = {
   rings: ["seconds", "minutes", "hours", "weekday", "day", "month"],
   motion: "smooth",
   color_mode: "rainbow",
-  palette: DEFAULT_PALETTE,
   ring_colors: {},
   show_labels: true,
   uppercase_labels: true,
+  readable_labels: true,
   label_min_ring_px: 9,
   center: "none",
   ring_width: 0.8,
@@ -97,7 +98,7 @@ export const DEFAULT_CONFIG: Omit<PolarClockConfig, "type"> = {
   caps: "butt",
   show_track: true,
   track_opacity: 0.12,
-  background: "#0b0b0f",
+  background: "card",
   text_color: "auto",
   hour_format: "auto",
   first_weekday: "auto",
@@ -136,7 +137,7 @@ export function normalizeConfig(input: Partial<PolarClockConfig> & { type?: stri
   if (new Set(cfg.rings).size !== cfg.rings.length) throw new Error("`rings` contains duplicates");
 
   cfg.motion = oneOf(cfg.motion, ["smooth", "step"] as const, "motion");
-  cfg.color_mode = oneOf(cfg.color_mode, ["rainbow", "theme", "palette"] as const, "color_mode");
+  cfg.color_mode = oneOf(cfg.color_mode, ["rainbow", "theme", "custom"] as const, "color_mode");
   cfg.center = oneOf(cfg.center, ["none", "time", "date", "time_date"] as const, "center");
   cfg.direction = oneOf(cfg.direction, ["clockwise", "counterclockwise"] as const, "direction");
   cfg.caps = oneOf(cfg.caps, ["round", "butt"] as const, "caps");
@@ -153,9 +154,6 @@ export function normalizeConfig(input: Partial<PolarClockConfig> & { type?: stri
   cfg.track_opacity = num(cfg.track_opacity, "track_opacity", 0, 1);
   cfg.label_min_ring_px = num(cfg.label_min_ring_px, "label_min_ring_px", 0, 200);
 
-  if (!Array.isArray(cfg.palette)) throw new Error("`palette` must be a list of colors");
-  cfg.palette = cfg.palette.map(String).filter((c) => c.trim());
-  if (cfg.palette.length === 0) cfg.palette = DEFAULT_PALETTE;
   if (typeof cfg.ring_colors !== "object" || Array.isArray(cfg.ring_colors)) {
     throw new Error("`ring_colors` must be a mapping of ring name to color");
   }

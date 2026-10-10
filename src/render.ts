@@ -18,6 +18,7 @@ export interface RenderModel {
   showTrack: boolean;
   trackOpacity: number;
   showLabels: boolean;
+  readableLabels: boolean;
   labelMinRingPx: number;
   /** Color for text that is not on top of an arc. */
   textColor: string;
@@ -82,6 +83,14 @@ export function canonicalColor(ctx: CanvasRenderingContext2D, color: string): st
   return String(ctx.fillStyle);
 }
 
+/** Whether text centred at canvas angle `a` would be upside down when read clockwise. */
+export const isBottomHalf = (a: number): boolean => Math.sin(a) > 0;
+
+/**
+ * Draw `text` along the circle of radius `r`, occupying the angles [startAngle, startAngle + span].
+ * Normally it reads clockwise with letters pointing outward; with `flip` it reads
+ * counterclockwise with letters pointing inward, which is upright on the bottom half.
+ */
 function drawArcText(
   ctx: CanvasRenderingContext2D,
   text: string,
@@ -89,17 +98,25 @@ function drawArcText(
   cy: number,
   r: number,
   startAngle: number,
+  span: number,
+  flip: boolean,
 ) {
-  let a = startAngle;
+  let a = flip ? startAngle + span : startAngle;
   for (const ch of text) {
     const w = ctx.measureText(ch).width;
     const half = w / 2 / r;
     ctx.save();
     ctx.translate(cx, cy);
-    ctx.rotate(a + half + Math.PI / 2);
-    ctx.fillText(ch, 0, -r);
+    if (flip) {
+      ctx.rotate(a - half - Math.PI / 2);
+      ctx.fillText(ch, 0, r);
+      a -= w / r;
+    } else {
+      ctx.rotate(a + half + Math.PI / 2);
+      ctx.fillText(ch, 0, -r);
+      a += w / r;
+    }
     ctx.restore();
-    a += w / r;
   }
 }
 
@@ -165,7 +182,8 @@ export function drawClock(
       from = dir > 0 ? end + pad : end - pad - textAngle;
       ctx.fillStyle = m.textColor;
     }
-    drawArcText(ctx, ring.label, cx, cy, r, from);
+    const flip = m.readableLabels && isBottomHalf(from + textAngle / 2);
+    drawArcText(ctx, ring.label, cx, cy, r, from, textAngle, flip);
   });
 
   // Center readout scales with the empty middle; skipped when there is no room.

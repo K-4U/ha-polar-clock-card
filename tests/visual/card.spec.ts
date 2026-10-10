@@ -18,9 +18,19 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe("looks", () => {
-  test("default classic look", async ({ page }) => {
+  test("default look on a light theme", async ({ page }) => {
     const card = await mount(page, "classic");
     await expect(card).toHaveScreenshot("classic.png");
+  });
+
+  test("default look follows a dark theme", async ({ page }) => {
+    const card = await mount(page, "dark", {}, { "--card-background-color": "#1c1c1c" });
+    await expect(card).toHaveScreenshot("dark.png");
+  });
+
+  test("labels upside down when readable_labels is off", async ({ page }) => {
+    const card = await mount(page, "unreadable", { readable_labels: false, background: "#0b0b0f" });
+    await expect(card).toHaveScreenshot("not-readable.png");
   });
 
   test("theme colors, round caps, center readout", async ({ page }) => {
@@ -35,16 +45,17 @@ test.describe("looks", () => {
     await expect(card).toHaveScreenshot("theme-center.png");
   });
 
-  test("palette, counterclockwise, rotated, per-ring override, no track", async ({ page }) => {
-    const card = await mount(page, "palette", {
-      color_mode: "palette",
+  test("custom colors, counterclockwise, rotated, no track", async ({ page }) => {
+    const card = await mount(page, "custom", {
+      color_mode: "custom",
+      background: "#0b0b0f",
       direction: "counterclockwise",
       start_angle: 90,
       show_track: false,
       ring_colors: { month: "var(--accent-color)" },
       rings: ["year", "month", "weekday", "hours", "minutes"],
     });
-    await expect(card).toHaveScreenshot("palette-ccw.png");
+    await expect(card).toHaveScreenshot("custom-ccw.png");
   });
 
   test("step motion and 12h labels", async ({ page }) => {

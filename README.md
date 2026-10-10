@@ -6,9 +6,9 @@
 A polar clock for Home Assistant dashboards. Concentric rings fill up as seconds, minutes, hours, days, months and the year go by. Inspired by the classic pixelbreaker polar clock.
 
 - Seven rings to choose from (seconds, minutes, hours, day of week, day of month, month, year), each optional and in any order
-- Smooth or stepped motion
-- Rainbow, theme-aware, or fixed-palette colours, plus a colour override for each ring
-- Labels on the arcs and an optional time/date readout in the centre
+- Smooth motion that winds full rings back down instead of jumping to empty, or stepped motion with a small bounce on each step
+- Rainbow, theme-aware, or custom colours (one per ring)
+- Labels on the arcs that stay upright all the way round, and an optional time/date readout in the centre
 - **Sizes itself automatically**: stays square in masonry views, fills its cell in sections views, and fits the screen height in panel views. Labels hide when the card gets too small
 - Sharp on high-DPI screens. Uses your Home Assistant time zone, language, 12/24h setting and first day of the week
 - Respects *prefers-reduced-motion* and stops animating when off screen or in a background tab
@@ -36,18 +36,18 @@ Requires Home Assistant **2024.8** or newer.
 type: custom:polar-clock-card
 ```
 
-That gives you the classic look. Here is a busier example:
+That gives you the classic rainbow rings on your theme's card background. Here is a busier example:
 
 ```yaml
 type: custom:polar-clock-card
 rings: [seconds, minutes, hours, day, month, year]
-color_mode: theme
+color_mode: custom
+ring_colors:
+  seconds: var(--accent-color)
+  hours: "#ff4d6d"
 center: time_date
 inner_radius: 0.4
 caps: round
-background: card
-ring_colors:
-  seconds: var(--accent-color)
 tap_action:
   action: navigate
   navigation_path: /lovelace/clock
@@ -58,12 +58,12 @@ tap_action:
 | Option | Default | Description |
 | --- | --- | --- |
 | `rings` | `[seconds, minutes, hours, weekday, day, month]` | Rings to show, outermost first. Also: `year`. |
-| `motion` | `smooth` | `smooth` sweeps continuously; `step` jumps once per unit. Reduced-motion users always get `step`. |
-| `color_mode` | `rainbow` | `rainbow` (hue follows progress), `theme` (blend of `--primary-color` → `--accent-color`), `palette`. |
-| `palette` | 7 bright colours | List of colours for `palette` mode, outermost ring first. |
-| `ring_colors` | – | Colour for individual rings, e.g. `{ hours: "#ff4d6d" }`. Takes priority over `color_mode`. Accepts any CSS colour, including `var(--…)`. |
+| `motion` | `smooth` | `smooth` sweeps continuously, and a full ring winds back down to its new value. `step` moves once per unit with a small bounce. Reduced-motion users always get `step`, without the bounce or wind-back. |
+| `color_mode` | `rainbow` | `rainbow` (hue follows progress), `theme` (blend of `--primary-color` → `--accent-color`), or `custom` (set by `ring_colors`). |
+| `ring_colors` | a bright colour per ring | Only used with `color_mode: custom`, e.g. `{ hours: "#ff4d6d" }`. Rings you leave out keep their default colour. Accepts any CSS colour, including `var(--…)`. |
 | `show_labels` | `true` | Text on each arc. |
 | `uppercase_labels` | `true` | Classic all-caps labels. |
+| `readable_labels` | `true` | Flips labels on the bottom half so they read left to right instead of upside down. |
 | `label_min_ring_px` | `9` | Labels hide when rings are thinner than this (px). |
 | `center` | `none` | `none`, `time`, `date`, `time_date`. The text scales with `inner_radius`. |
 | `ring_width` | `0.8` | Fraction of each ring's slot taken by the arc (`1` leaves no gap). |
@@ -73,7 +73,7 @@ tap_action:
 | `caps` | `butt` | Arc ends: `butt` (square) or `round`. |
 | `show_track` | `true` | Faint full circle behind each arc. |
 | `track_opacity` | `0.12` | Opacity of the track. |
-| `background` | `#0b0b0f` | CSS colour, `card` (theme card background), or `transparent`. |
+| `background` | `card` | `card` follows your theme's card background (light or dark). Can also be any CSS colour (e.g. `#0b0b0f` for the classic black) or `transparent`. |
 | `text_color` | `auto` | Colour of labels drawn off the arc and of the centre readout. `auto` picks by contrast. |
 | `time_zone` | HA profile | `server`, `local`, or an IANA zone such as `Europe/Amsterdam`. |
 | `locale` | HA language | BCP 47 tag, e.g. `nl`, `en-GB`. |

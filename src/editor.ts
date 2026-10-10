@@ -1,6 +1,12 @@
 import { LitElement, html } from "lit";
 import { property, state } from "lit/decorators.js";
-import { DEFAULT_CONFIG, RING_TYPES, normalizeConfig, type PolarClockConfig } from "./config";
+import {
+  DEFAULT_CONFIG,
+  RING_DEFAULT_COLORS,
+  RING_TYPES,
+  normalizeConfig,
+  type RingType,
+} from "./config";
 
 const RING_LABELS: Record<(typeof RING_TYPES)[number], string> = {
   seconds: "Seconds",
@@ -18,10 +24,9 @@ const LABELS: Record<string, string> = {
   rings: "Rings (outermost first)",
   motion: "Motion",
   color_mode: "Color mode",
-  palette: "Palette colors",
-  ring_colors: "Per-ring colors",
   show_labels: "Ring labels",
   uppercase_labels: "Uppercase labels",
+  readable_labels: "Keep labels upright",
   label_min_ring_px: "Hide labels below ring thickness (px)",
   center: "Center readout",
   ring_width: "Ring thickness (fraction of slot)",
@@ -45,18 +50,38 @@ const LABELS: Record<string, string> = {
 
 const HELPERS: Record<string, string> = {
   rings: "Pick and drag to reorder. Defaults to seconds → month.",
-  palette: "Used when color mode is Palette, outermost ring first.",
-  ring_colors: "Any CSS color, including var(--...). Overrides the color mode.",
-  background: "CSS color, 'card' for the theme card background, or 'transparent'. Default #0b0b0f.",
+  background: "'card' follows your theme (light/dark), or any CSS color, or 'transparent'.",
   text_color: "'auto' picks black or white by contrast.",
   time_zone: "Empty follows your HA profile; 'server', 'local', or an IANA zone like Europe/Amsterdam.",
   locale: "Empty follows the HA language, e.g. nl, en-GB.",
   ring_width: "1 = no gap between rings.",
+  readable_labels: "Flips labels on the bottom half so they read left to right.",
+  ...Object.fromEntries(RING_TYPES.map((r) => [r, "Any CSS color, including var(--...)."])),
 };
 
-/** Built-in HA form editor definition (ha-form schema). */
-export const configForm = {
+/** Colors section, only offered in `custom` color mode, with a field per enabled ring. */
+const colorsSection = (rings: RingType[]) => ({
+  type: "expandable",
+  name: "ring_colors",
+  title: "Colors",
   schema: [
+    {
+      type: "grid",
+      name: "",
+      schema: rings.map((r) => ({
+        name: r,
+        selector: { text: {} },
+      })),
+    },
+  ],
+});
+
+/** ha-form schema for the visual editor; depends on the current config (e.g. color mode). */
+export function buildSchema(config: Record<string, unknown>) {
+  const rings = (Array.isArray(config.rings) ? config.rings : DEFAULT_CONFIG.rings).filter(
+    (r): r is RingType => (RING_TYPES as readonly string[]).includes(r),
+  );
+  return [
     {
       name: "rings",
       selector: {
@@ -80,7 +105,7 @@ export const configForm = {
               options: opts([
                 ["rainbow", "Rainbow"],
                 ["theme", "Theme"],
-                ["palette", "Palette"],
+                ["custom", "Custom"],
               ]),
             },
           },
@@ -154,6 +179,7 @@ export const configForm = {
             },
             { name: "show_track", selector: { boolean: {} } },
             { name: "uppercase_labels", selector: { boolean: {} } },
+            { name: "readable_labels", selector: { boolean: {} } },
           ],
         },
         { name: "label_min_ring_px", selector: { number: { min: 0, max: 60, step: 1, mode: "box" } } },
@@ -161,27 +187,7 @@ export const configForm = {
         { name: "text_color", selector: { text: {} } },
       ],
     },
-    {
-      type: "expandable",
-      name: "",
-      title: "Colors",
-      flatten: true,
-      schema: [
-        { name: "palette", selector: { text: { multiple: true } } },
-        {
-          type: "expandable",
-          name: "ring_colors",
-          title: "Per-ring colors",
-          schema: [
-            {
-              type: "grid",
-              name: "",
-              schema: RING_TYPES.map((r) => ({ name: r, selector: { text: {} } })),
-            },
-          ],
-        },
-      ],
-    },
+    ...(config.color_mode === "custom" ? [colorsSection(rings)] : []),
     {
       type: "expandable",
       name: "",
@@ -240,13 +246,11 @@ export const configForm = {
         { name: "double_tap_action", selector: { ui_action: {} } },
       ],
     },
-  ],
-  computeLabel: (s: { name: string }) => LABELS[s.name],
-  computeHelper: (s: { name: string }) => HELPERS[s.name],
-  assertConfig: (config: Partial<PolarClockConfig>) => {
-    normalizeConfig(config);
-  },
-};
+  ];
+}
+
+const computeLabel = (s: { name: string }) => LABELS[s.name];
+const computeHelper = (s: { name: string }) => HELPERS[s.name];
 
 const same = (a: unknown, b: unknown) => JSON.stringify(a) === JSON.stringify(b);
 
@@ -256,8 +260,12 @@ export function stripDefaults(config: Record<string, unknown>): Record<string, u
   const out: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(config)) {
     if (value === undefined || value === "" || (key in defaults && same(value, defaults[key]))) continue;
-    if (key === "ring_colors" && value && typeof value === "object") {
-      const colors = Object.fromEntries(Object.entries(value).filter(([, c]) => c));
+    if (key === "ring_colors") {
+      // Only meaningful in custom mode; keep just the colors that differ from the ring defaults.
+      if (config.color_mode !== "custom" || !value || typeof value !== "object") continue;
+      const colors = Object.fromEntries(
+        Object.entries(value).filter(([ring, c]) => c && c !== RING_DEFAULT_COLORS[ring as RingType]),
+      );
       if (Object.keys(colors).length) out[key] = colors;
       continue;
     }
@@ -290,10 +298,14 @@ export class PolarClockCardEditor extends LitElement {
       ${error ? html`<ha-alert alert-type="error">${error}</ha-alert>` : ""}
       <ha-form
         .hass=${this.hass}
-        .data=${{ ...DEFAULT_CONFIG, ...this._config }}
-        .schema=${configForm.schema}
-        .computeLabel=${configForm.computeLabel}
-        .computeHelper=${configForm.computeHelper}
+        .data=${{
+          ...DEFAULT_CONFIG,
+          ...this._config,
+          ring_colors: { ...RING_DEFAULT_COLORS, ...(this._config.ring_colors as object) },
+        }}
+        .schema=${buildSchema(this._config)}
+        .computeLabel=${computeLabel}
+        .computeHelper=${computeHelper}
         @value-changed=${this._changed}
       ></ha-form>
     `;

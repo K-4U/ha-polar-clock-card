@@ -44,7 +44,10 @@
         const wrap = document.createElement("div");
         wrap.className = "box";
         wrap.id = id;
-        Object.assign(wrap.style, { width: "400px", ...box });
+        for (const [key, value] of Object.entries({ width: "400px", ...box })) {
+          if (key.startsWith("--")) wrap.style.setProperty(key, value);
+          else wrap.style[key] = value;
+        }
         const card = document.createElement("polar-clock-card");
         card.now = new Date(now);
         card.setConfig({ type: "custom:polar-clock-card", time_zone: "UTC", locale: "en-US", ...config });
