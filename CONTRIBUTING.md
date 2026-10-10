@@ -62,6 +62,8 @@ Every pull request and push to `main` runs [CI](.github/workflows/ci.yml):
 - **Build**: bundles the card and uploads `polar-clock-card.js` as a workflow artifact, so you can try a pull request without building it yourself.
 - **HACS validation**: the HACS repository checks. Since the built card is only published on releases, this check needs at least one release with `polar-clock-card.js` attached before it can pass.
 
+Dependabot ([.github/dependabot.yml](.github/dependabot.yml)) checks npm packages and GitHub Actions weekly. Minor and patch npm updates come in one grouped PR; each major update gets its own. [Dependabot auto-merge](.github/workflows/dependabot-auto-merge.yml) turns on auto-merge for every Dependabot PR, so GitHub merges it as soon as the required checks pass. A PR that fails a check stays open for you to look at. For example, a Playwright update can shift the screenshot rendering; regenerate the baselines with `npm run test:visual:update:linux` on that PR's branch.
+
 `main` is protected by [.github/rulesets/protect-main.json](.github/rulesets/protect-main.json): changes need a pull request with all three checks passing. Import it under **Settings → Rules → Rulesets → New ruleset → Import a ruleset**.
 
 To release, publish a GitHub release with a tag like `v1.2.3`. The [release workflow](.github/workflows/release.yml) then:
