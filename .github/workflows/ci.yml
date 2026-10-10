@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      checks: write # "Test Results" check run
+      pull-requests: write # results comment on pull requests
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Unit tests
+        run: npx vitest run --reporter=default --reporter=junit --outputFile.junit=reports/unit.xml
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+      - name: Visual tests
+        # The "github" reporter marks failing tests inline in the pull request diff.
+        run: npx playwright test --reporter=list,github,junit
+        env:
+          PLAYWRIGHT_JUNIT_OUTPUT_FILE: reports/visual.xml
+      - name: Publish test results
+        if: ${{ !cancelled() }}
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        with:
+          files: reports/*.xml
+          check_name: Test Results
+      - name: Upload screenshot diffs
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-results
+          path: test-results/
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      # Lets reviewers try a pull request's card without building it themselves.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: polar-clock-card
+          path: dist/polar-clock-card.js
+
+  hacs:
+    name: HACS validation
+    # On a release, the card isn't attached yet at this point; release.yml validates after uploading it.
+    if: ${{ github.event_name != 'release' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: hacs/action@main
+        with:
+          category: plugin

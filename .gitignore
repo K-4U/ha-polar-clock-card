@@ -1,0 +1,17 @@
+node_modules/
+dist/
+test-results/
+playwright-report/
+reports/
+*.log
+.DS_Store
+
+# Dev Home Assistant runtime data; only the hand-written config is tracked
+dev/config/*
+!dev/config/configuration.yaml
+!dev/config/dashboards/
+dev/.dev-credentials
+
+# Local design notes, never published
+brainstorms/
+.idea/

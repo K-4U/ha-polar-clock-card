@@ -1,0 +1,85 @@
+# Test dashboard covering every layout the card should auto-size in.
+views:
+  - title: Masonry
+    path: masonry
+    cards:
+      - type: custom:polar-clock-card
+      - type: custom:polar-clock-card
+        readable_labels: false
+        background: "#0b0b0f"
+      - type: custom:polar-clock-card
+        color_mode: theme
+        caps: round
+        center: time_date
+        inner_radius: 0.4
+        background: card
+        rings: [seconds, minutes, hours, day]
+      - type: custom:polar-clock-card
+        color_mode: custom
+        direction: counterclockwise
+        start_angle: 90
+        show_track: false
+        rings: [year, month, weekday, hours, minutes]
+        tap_action:
+          action: navigate
+          navigation_path: /polar-dev/panel
+      - type: custom:polar-clock-card
+        motion: step
+        hour_format: "12"
+        uppercase_labels: false
+        time_zone: America/New_York
+        color_mode: custom
+        ring_colors:
+          seconds: var(--accent-color)
+          hours: "#ff4d6d"
+      - type: horizontal-stack
+        cards:
+          - type: custom:polar-clock-card
+            rings: [seconds, minutes, hours]
+          - type: custom:polar-clock-card
+            rings: [seconds, minutes, hours]
+            color_mode: theme
+          - type: custom:polar-clock-card
+            rings: [seconds, minutes, hours]
+            locale: nl
+
+  - title: Sections
+    path: sections
+    type: sections
+    max_columns: 4
+    sections:
+      - type: grid
+        cards:
+          - type: heading
+            heading: Default size (6×4)
+          - type: custom:polar-clock-card
+          - type: custom:polar-clock-card
+            color_mode: theme
+            center: time
+            inner_radius: 0.35
+      - type: grid
+        cards:
+          - type: heading
+            heading: Resized
+          - type: custom:polar-clock-card
+            grid_options:
+              columns: 12
+              rows: 3
+          - type: custom:polar-clock-card
+            grid_options:
+              columns: 3
+              rows: 2
+          - type: custom:polar-clock-card
+            color_mode: custom
+            grid_options:
+              columns: 12
+              rows: 8
+
+  - title: Panel
+    path: panel
+    type: panel
+    cards:
+      - type: custom:polar-clock-card
+        center: time_date
+        inner_radius: 0.3
+        rings: [seconds, minutes, hours, weekday, day, month, year]
