@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>polar-clock-card harness</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 16px;
+        background: #e5e5e5;
+        font-family: Arial, sans-serif;
+        --primary-color: #03a9f4;
+        --accent-color: #ff9800;
+        --card-background-color: #ffffff;
+      }
+      .box {
+        display: block;
+        margin-bottom: 16px;
+      }
+    </style>
+    <script>
+      // Count animation frames so tests can check that the loop pauses.
+      window.__raf = 0;
+      const raf = window.requestAnimationFrame.bind(window);
+      window.requestAnimationFrame = (cb) => {
+        window.__raf++;
+        return raf(cb);
+      };
+
+      // Minimal stand-in for HA's <ha-card>.
+      customElements.define(
+        "ha-card",
+        class extends HTMLElement {
+          connectedCallback() {
+            this.style.display = "block";
+            this.style.borderRadius = "12px";
+            this.style.background ||= "var(--card-background-color)";
+          }
+        },
+      );
+
+      /** Mount a card in a sized box. Returns the card element. */
+      window.mountCard = (id, config, box = {}, now = "2026-10-10T14:30:15.500Z") => {
+        const wrap = document.createElement("div");
+        wrap.className = "box";
+        wrap.id = id;
+        Object.assign(wrap.style, { width: "400px", ...box });
+        const card = document.createElement("polar-clock-card");
+        card.now = new Date(now);
+        card.setConfig({ type: "custom:polar-clock-card", time_zone: "UTC", locale: "en-US", ...config });
+        card.hass = {
+          language: "en",
+          locale: { language: "en", time_format: "24", time_zone: "server", first_weekday: "monday" },
+          config: { time_zone: "UTC" },
+          themes: { darkMode: false },
+        };
+        wrap.append(card);
+        document.body.append(wrap);
+        return card;
+      };
+    </script>
+    <script type="module" src="/dist/polar-clock-card.js"></script>
+  </head>
+  <body></body>
+</html>

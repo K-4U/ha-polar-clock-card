@@ -1,0 +1,40 @@
+# Local Home Assistant for developing the polar clock card.
+# Start: docker compose -f dev/docker-compose.yml up -d   → http://localhost:8123
+# Then:  npm run dev:setup  (onboarding + card resource; credentials in dev/.dev-credentials)
+#        npm run dev        (rebuild on change; reload the browser to see it)
+name: polar-clock-card-dev
+
+services:
+  # One-shot: drops the latest HACS release into custom_components on first start.
+  hacs-init:
+    image: alpine:3.22
+    volumes:
+      - ./config:/config
+    command:
+      - sh
+      - -c
+      - |
+        set -e
+        if [ -f /config/custom_components/hacs/manifest.json ]; then
+          echo "HACS already present"; exit 0
+        fi
+        mkdir -p /config/custom_components/hacs
+        wget -qO /tmp/hacs.zip https://github.com/hacs/integration/releases/latest/download/hacs.zip
+        unzip -oq /tmp/hacs.zip -d /config/custom_components/hacs
+        echo "HACS installed"
+
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    container_name: polar-clock-ha-dev
+    restart: unless-stopped
+    depends_on:
+      hacs-init:
+        condition: service_completed_successfully
+    ports:
+      - "8123:8123"
+    environment:
+      TZ: Europe/Amsterdam
+    volumes:
+      - ./config:/config
+      # Live build output, served at /local/polar-clock-card/polar-clock-card.js
+      - ../dist:/config/www/polar-clock-card:ro

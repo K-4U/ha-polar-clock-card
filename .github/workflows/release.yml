@@ -1,0 +1,95 @@
+name: Release
+
+# Publishing a GitHub release (tag like v0.2.0) runs the checks, then builds and attaches
+# polar-clock-card.js, which HACS installs (hacs.json: filename).
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    uses: ./.github/workflows/ci.yml
+    # A called workflow can't have more permissions than its caller.
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+
+  package:
+    name: Build for HACS
+    needs: checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Set version from the release tag
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          version="${TAG#v}"
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+([a-z0-9.-]*)$ ]]; then
+            echo "::error::Release tag '$TAG' is not a version like v1.2.3"
+            exit 1
+          fi
+          # The bundle prints this version in the browser console.
+          npm version --no-git-tag-version --allow-same-version "$version"
+
+      - run: npm ci
+      - name: Build polar-clock-card.js
+        run: npm run build
+
+      - name: Attach to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$TAG" dist/polar-clock-card.js --clobber
+
+  update-version:
+    name: Update package version on main
+    needs: package
+    if: ${{ !github.event.release.prerelease }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    # Pushes with a deploy key: the ruleset on main lets deploy keys bypass the pull request
+    # requirement (personal repositories can't exempt GitHub Actions itself).
+    env:
+      HAS_DEPLOY_KEY: ${{ secrets.VERSION_DEPLOY_KEY != '' }}
+    steps:
+      - name: Check for the deploy key
+        if: env.HAS_DEPLOY_KEY != 'true'
+        run: echo "::warning::Secret VERSION_DEPLOY_KEY is not set; package.json on main is not updated"
+
+      - uses: actions/checkout@v7
+        if: env.HAS_DEPLOY_KEY == 'true'
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          ssh-key: ${{ secrets.VERSION_DEPLOY_KEY }}
+
+      - name: Commit the released version
+        if: env.HAS_DEPLOY_KEY == 'true'
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+          BRANCH: ${{ github.event.repository.default_branch }}
+        run: |
+          version="${TAG#v}"
+          current="$(jq -r .version package.json)"
+          # Never lower the version, e.g. when releasing a fix for an older version.
+          if [ "$current" = "$version" ] || [ "$(printf '%s\n%s\n' "$current" "$version" | sort -V | tail -1)" != "$version" ]; then
+            echo "package.json already has $current; not changing it to $version"
+            exit 0
+          fi
+          npm version --no-git-tag-version "$version"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Set version to $version [skip ci]"
+          git push origin "HEAD:$BRANCH"

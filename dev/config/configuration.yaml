@@ -1,0 +1,18 @@
+default_config:
+
+# The locally built card (/local/polar-clock-card/polar-clock-card.js) is registered as a
+# Lovelace resource by `npm run dev:setup`, the same way HACS registers it.
+# Note: frontend.extra_module_url does NOT work for cards on HA 2026.10+: it loads before the
+# scoped custom element registry polyfill and the definition is lost.
+
+lovelace:
+  dashboards:
+    polar-dev:
+      mode: yaml
+      title: Polar Clock Dev
+      icon: mdi:clock-time-four-outline
+      show_in_sidebar: true
+      filename: dashboards/polar-dev.yaml
+
+logger:
+  default: info

@@ -1,0 +1,38 @@
+{
+  "name": "ha-polar-clock-card",
+  "version": "0.1.0",
+  "description": "A configurable, auto-sizing polar clock card for Home Assistant dashboards.",
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/K-4U/ha-polar-clock-card.git"
+  },
+  "scripts": {
+    "build": "rollup -c",
+    "watch": "rollup -c --watch",
+    "dev": "node dev/watch.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "npm run typecheck",
+    "test": "vitest run",
+    "test:visual": "playwright test",
+    "test:visual:update": "playwright test --update-snapshots",
+    "test:visual:update:linux": "node tests/visual/linux-snapshots.mjs",
+    "dev:up": "docker compose -f dev/docker-compose.yml up -d",
+    "dev:down": "docker compose -f dev/docker-compose.yml down",
+    "dev:setup": "node dev/setup.mjs"
+  },
+  "dependencies": {
+    "lit": "^3.3.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.0",
+    "@rollup/plugin-node-resolve": "^16.0.3",
+    "@rollup/plugin-terser": "^1.0.0",
+    "esbuild": "^0.28.2",
+    "rollup": "^4.64.4",
+    "rollup-plugin-esbuild": "^6.2.1",
+    "typescript": "~5.9.3",
+    "vitest": "^5.0.3"
+  }
+}
