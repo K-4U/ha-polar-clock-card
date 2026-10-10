@@ -1,6 +1,6 @@
 {
   "name": "ha-polar-clock-card",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "A configurable, auto-sizing polar clock card for Home Assistant dashboards.",
   "type": "module",
   "license": "MIT",
