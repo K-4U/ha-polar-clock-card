@@ -2,6 +2,8 @@ import type { Motion } from "./config";
 
 export const STEP_MS = 450;
 export const ROLLOVER_MS = 700;
+/** Largest real single step is one weekday (1/7); bigger forward jumps aren't animated. */
+const MAX_STEP = 0.15;
 
 /**
  * "Stretch & snap": creeps a quarter of the way as if held back, then snaps the rest.
@@ -54,10 +56,16 @@ export class RingAnimator {
 
     if (animate && prev !== undefined) {
       const current = this.shown.get(key) ?? prev;
-      if (motion === "step" && target !== prev) {
+      const wrapped = target < prev - 0.5;
+      const jumped = !wrapped && Math.abs(target - prev) > MAX_STEP;
+      if (jumped) {
+        // e.g. the system clock changed: show the new time without a long stale animation
+        this.tweens.delete(key);
+        tween = undefined;
+      } else if (motion === "step" && target !== prev) {
         tween = { kind: "step", from: current, to: target, start: now };
         this.tweens.set(key, tween);
-      } else if (motion === "smooth" && target < prev - 0.5) {
+      } else if (motion === "smooth" && wrapped) {
         tween = { kind: "rollover", from: current, to: target, start: now };
         this.tweens.set(key, tween);
       }

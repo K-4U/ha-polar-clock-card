@@ -18,7 +18,7 @@ const PORT = 4174;
 const DARK = { page: "#111114", vars: { "--card-background-color": "#1c1c21" } };
 const LIGHT = { page: "#f0f0f3", vars: { "--card-background-color": "#ffffff" } };
 
-/** One GIF: a card config, a start time and a duration; `animate` can change the page per frame. */
+/** One GIF: a card config, a page theme, a start time and a duration. */
 const scenes = [
   {
     file: "hero.gif",
@@ -49,28 +49,11 @@ const scenes = [
     seconds: 4,
   },
   {
-    file: "custom.gif",
+    file: "rounded.gif",
     theme: DARK,
-    config: {
-      color_mode: "custom",
-      direction: "counterclockwise",
-      start_angle: 90,
-      caps: "round",
-      show_track: false,
-      rings: ["year", "month", "weekday", "hours", "minutes", "seconds"],
-    },
-    start: "2026-10-10T07:05:57.5Z",
-    seconds: 3,
-  },
-  {
-    file: "autosize.gif",
-    theme: LIGHT,
-    config: {},
-    start: "2026-10-10T14:30:15.5Z",
+    config: { caps: "round" },
+    start: "2026-10-10T18:22:57.6Z",
     seconds: 4,
-    fixedClip: true,
-    // width eases 380 → 130 → 380 px
-    animate: (t) => `${Math.round(255 + 125 * Math.cos(t * 2 * Math.PI))}px`,
   },
 ];
 
@@ -103,32 +86,25 @@ async function record(browser, scene) {
   await page.goto(`http://127.0.0.1:${PORT}/tests/visual/harness.html`);
   await page.waitForFunction(() => customElements.get("polar-clock-card"));
   await page.evaluate(
-    ({ theme, config, fixed }) => {
+    ({ theme, config }) => {
       document.body.style.background = theme.page;
       document.body.style.padding = "20px";
-      const box = { width: "380px", ...theme.vars };
-      window.mountCard("scene", config, box, fixed ? undefined : null);
+      window.mountCard("scene", config, { width: "380px", ...theme.vars }, null);
     },
-    { theme: scene.theme, config: scene.config, fixed: scene.fixedClip },
+    { theme: scene.theme, config: scene.config },
   );
   const target = page.locator("#scene polar-clock-card");
   await target.waitFor();
-  await page.clock.pauseAt(start - FRAME_MS);
+  // Run one second before recording so the first frame shows a settled clock.
+  await page.clock.pauseAt(start - 1000);
+  await page.clock.runFor(1000 - FRAME_MS);
 
   const frames = [];
   const total = Math.round(scene.seconds * FPS);
   let size;
   for (let i = 0; i < total; i++) {
-    if (scene.animate) {
-      const w = scene.animate(i / total);
-      await page.evaluate((w) => (document.getElementById("scene").style.width = w), w);
-    }
     await page.clock.runFor(FRAME_MS);
-    const png = PNG.sync.read(
-      scene.fixedClip
-        ? await page.screenshot({ clip: { x: 10, y: 10, width: 400, height: 400 } })
-        : await target.screenshot(),
-    );
+    const png = PNG.sync.read(await target.screenshot());
     size ??= { width: png.width, height: png.height };
     frames.push(new Uint8Array(png.data));
   }

@@ -56,6 +56,30 @@ describe("RingAnimator", () => {
     expect(a.animating).toBe(false);
   });
 
+  it("does not animate big jumps (clock changed), in either mode", () => {
+    const a = new RingAnimator();
+    a.value("s", 17 / 60, 0, "step", true);
+    expect(a.value("s", 27 / 60, 16, "step", true)).toBe(27 / 60);
+    a.value("m", 0.1, 0, "smooth", true);
+    expect(a.value("m", 0.4, 16, "smooth", true)).toBe(0.4);
+    expect(a.animating).toBe(false);
+  });
+
+  it("still animates the largest real step (one weekday)", () => {
+    const a = new RingAnimator();
+    a.value("w", 3 / 7, 0, "step", true);
+    a.value("w", 4 / 7, 16, "step", true);
+    expect(a.animating).toBe(true);
+  });
+
+  it("starts fresh after reset (loop resumed)", () => {
+    const a = new RingAnimator();
+    a.value("s", 0.1, 0, "step", true);
+    a.reset();
+    expect(a.value("s", 0.12, 16, "step", true)).toBe(0.12);
+    expect(a.animating).toBe(false);
+  });
+
   it("jumps straight to the value when animation is off (reduced motion)", () => {
     const a = new RingAnimator();
     a.value("s", 0.999, 0, "smooth", false);

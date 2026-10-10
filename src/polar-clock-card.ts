@@ -245,6 +245,9 @@ export class PolarClockCard extends LitElement {
   private _schedule = () => {
     this._stop();
     if (!this.isConnected || !this._config || document.hidden || !this._onScreen) return;
+    // Resuming (back on screen, tab visible again): show the current time right away
+    // instead of animating from where the rings were when the loop paused.
+    this._animator.reset();
     const loop = () => {
       this._draw();
       // Step mode only needs frames while a ring is snapping into place; otherwise wake on the next second.

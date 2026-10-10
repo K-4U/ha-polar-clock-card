@@ -24,7 +24,7 @@ Requires Home Assistant **2024.8** or newer.
   <tr>
     <td align="center"><img src="https://raw.githubusercontent.com/K-4U/ha-polar-clock-card/main/docs/step.gif" width="240" alt="Step motion"><br><code>motion: step</code></td>
     <td align="center"><img src="https://raw.githubusercontent.com/K-4U/ha-polar-clock-card/main/docs/theme.gif" width="240" alt="Theme colours with a centre readout"><br><code>color_mode: theme</code> + <code>center</code></td>
-    <td align="center"><img src="https://raw.githubusercontent.com/K-4U/ha-polar-clock-card/main/docs/custom.gif" width="240" alt="Custom colours, counterclockwise from 3 o'clock"><br><code>color_mode: custom</code></td>
+    <td align="center"><img src="https://raw.githubusercontent.com/K-4U/ha-polar-clock-card/main/docs/rounded.gif" width="240" alt="Rainbow rings with rounded ends"><br><code>caps: round</code></td>
   </tr>
 </table>
 
@@ -94,10 +94,6 @@ tap_action:
 | `tap_action` / `hold_action` / `double_tap_action` | `none` | Standard [Home Assistant actions](https://www.home-assistant.io/dashboards/actions/). |
 
 ### Sizing
-
-<p align="center">
-  <img src="https://raw.githubusercontent.com/K-4U/ha-polar-clock-card/main/docs/autosize.gif" width="320" alt="The clock resizing with its container; labels hide when it gets small">
-</p>
 
 The card has no fixed size. The clock is always a circle that fits the shorter side of the space it gets:
 
