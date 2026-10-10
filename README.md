@@ -163,15 +163,16 @@ Every pull request and push to `main` runs [CI](.github/workflows/ci.yml):
 
 - **Tests**: typecheck, unit tests and Playwright visual tests. Results are published as a *Test Results* check and a comment on the pull request.
 - **Build**: bundles the card and uploads `polar-clock-card.js` as a workflow artifact, so you can try a pull request without building it yourself.
-- **HACS validation**: the HACS repository checks.
+- **HACS validation**: the HACS repository checks. Since the built card is only published on releases, this check needs at least one release with `polar-clock-card.js` attached before it can pass.
 
 `main` is protected by [.github/rulesets/protect-main.json](.github/rulesets/protect-main.json): changes need a pull request with all three checks passing. Import it under **Settings → Rules → Rulesets → New ruleset → Import a ruleset**.
 
 To release, publish a GitHub release with a tag like `v1.2.3`. The [release workflow](.github/workflows/release.yml) then:
 
-1. runs the CI checks
+1. runs the CI checks (except HACS validation, which can only pass once the file is attached)
 2. builds the card with that version
 3. attaches `polar-clock-card.js` to the release, which is the file HACS installs. The default branch is hidden in HACS because it contains no build.
+   HACS validation then runs against the release.
 4. for non-prerelease versions, commits the new version to `package.json` on `main`. This needs a deploy key with write access, stored as the repository secret `VERSION_DEPLOY_KEY`. The ruleset lets deploy keys bypass the pull request rule. Without the key, the step is skipped with a warning.
 
 ## License

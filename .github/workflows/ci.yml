@@ -67,6 +67,8 @@ jobs:
 
   hacs:
     name: HACS validation
+    # On a release, the card isn't attached yet at this point; release.yml validates after uploading it.
+    if: ${{ github.event_name != 'release' }}
     runs-on: ubuntu-latest
     steps:
       - uses: hacs/action@main
